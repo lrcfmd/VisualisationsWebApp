@@ -1,0 +1,109 @@
+<!doctype html>
+
+
+<html>
+
+<head>
+	<title>MOF Porosity</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css"
+		integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+	<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+		integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+		crossorigin="anonymous"></script>
+	<script src="https://cdn.jsdelivr.net/npm/popper.js@1.14.7/dist/umd/popper.min.js"
+		integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+		crossorigin="anonymous"></script>
+	<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/js/bootstrap.min.js"
+		integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+		crossorigin="anonymous"></script>
+
+	<link rel="stylesheet" href="/static/css/styles.css">
+</head>
+
+<body>
+	{% include '/static/header.html' %}
+	<div class="mainView container mainContainer">
+	<div class="container mt-5">
+		
+
+		<div>
+<!--			<p class="title text-red">MOF Porosity prediction API</p> -->
+			<img href="title" src="https://lmds.liverpool.ac.uk/static/images/Titles/mof_pore.svg">
+			
+	</div>
+
+	<p id="explanationText">
+	Access to the MOF Porosity prediction REST API is prodivded by making POST or PUT requests to <a>https://lmds.liverpool.ac.uk/mof_ml/API</a> with JSON fitting the following schema:</p>
+        <table class="table table-striped table-hover">
+				<tr>
+					<th>Argument</th>
+					<th>Type</th>
+					<th>Description</th>
+				</tr>
+				<tr>
+					<td> SMILES </td>
+					<td> String or list of strings </td>
+					<td> The SMILES strings of the linker(s) with which to make the prediction </td>
+				</tr>
+				<tr>
+					<td> metal </td>
+					<td> String or list of strings </td>
+					<td> The Elemental symbol of the metal ligand(s) with which to make the prediction </td>
+				</tr>
+			</table>
+        <p id="explanationText">
+    	    Requests can be made using a single SMILES and single metal, mutliple SMILES and a single metal, multiple metals with a singe SMILES or with equal sized lists of metals and SMILES in corresponding order. <br> 
+<br/>
+<br/>
+            Assuming correct formatting results will be provided as a list of lists. With each list corresponding to a single prediction, and the contents of that list in the following format:
+ <br/>       </p>
+        
+        <table class="table table-striped table-hover">
+				<tr>
+					<th>Index</th>
+					<th>Type</th>
+					<th>Description</th>
+				</tr>
+    			<tr>
+					<td> 0 </td>
+					<td> String </td>
+					<td> The SMILES strings of the linker with which the prediction was made.</td>
+				</tr>
+				<tr>
+					<td> 1 </td>
+					<td> String </td>
+					<td> The Elemental symbol of the metal ligand with which the prediction was made.</td>
+				</tr>
+                <tr>
+					<td> 2 </td>
+					<td> String ("True" or "False") </td>
+					<td> The prediction made by the first model in the ensemble, returns "True" if MOF is predicted to have pore limiting diameter larger than 2.4 &#8491 </td>
+				</tr>
+                <tr>
+					<td> 3 </td>
+					<td> String ("True" or "False") </td>
+					<td> The prediction made by the second model in the ensemble, returns "True" if MOF is predicted to have pore limiting diameter larger than 4.4 &#8491 </td>
+				</tr>
+                <tr>
+					<td> 4 </td>
+					<td> String ("True" or "False") </td>
+					<td> The prediction made by the third model in the ensemble, returns "True" if MOF is predicted to have pore limiting diameter larger than 5.9 &#8491 </td>
+				</tr>
+                <tr>
+					<td> 5 </td>
+					<td> String </td>
+					<td> The overall classification made by the ensemble. </td>
+				</tr>
+			</table>
+<br/>
+
+<p> Example Usage </p>
+
+<code style="color:black"> $ curl -X PUT "https://lmds.liverpool.ac.uk/mof_ml/API" -H "Content-Type: application/json" -d '{"SMILES": "CCO", "metal": "Fe"}' </code>
+</div>
+</div>
+	{% include '/static/footer.html' %}
+
+</body>
+</html>
