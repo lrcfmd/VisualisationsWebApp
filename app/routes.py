@@ -6,8 +6,8 @@ import joblib
 import pandas as pd
 from logging.config import dictConfig
 from app.model import Model
-from visualise_cube_web import Cube
-from visualise_square_web import Square
+from app.visualise_cube_web import Cube
+from app.visualise_square_web import Square
 from jinja2 import BaseLoader, TemplateNotFound,ChoiceLoader, FileSystemLoader
 from urllib import request, parse
 from flask import render_template, jsonify, make_response
@@ -53,6 +53,7 @@ dictConfig({"version": 1,
             })
 
 
+app.jinja_loader = ChoiceLoader([app.jinja_loader, UrlLoader("https://lmds.liverpool.ac.uk/static")])
 
 @app.route("/API_info", methods=['GET', 'POST'])
 def api_info():
@@ -92,9 +93,10 @@ def render_2d(elements, n_points=None):
 @app.route("/predict", methods=['GET', 'POST'])
 def predict():
     form = SearchForm()
-
+    app.logger.debug("called")
     if form.validate_on_submit():
         try:
+            app.logger.debug("HERE")
             #Parse strings
             if form.elements[0].charge.data:
                 elements = {x.element.data: x.charge.data for x in form.element if x.charge.data and x.elements.data}

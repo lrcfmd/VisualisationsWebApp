@@ -120,22 +120,22 @@ outline: none;
 					<div>
 						<h4>Elements</h4>
 						<div id='elements-container'>
-					{% set max_length = max(form.elements|length, 2) %}
+					{% set max_length = [form.elements|length, 2] | max %}
 					{% for i in range(max_length) %}
 					
 					{% if form.elements[i] is defined %}
 					<div class="elements">
-						Element {{loop.index0 +1}} Symbol {{forms.elements[i].element(class="search_term")}}
-						Charge constraint {{loop.index0 +1}} {{forms.elements[i].charge(class="search_term")}}
+						Element {{loop.index0 +1}} Symbol {{form.elements[i].element(class="search_term")}}
+						Charge constraint {{loop.index0 +1}} {{form.elements[i].charge(class="search_term")}}
 					</div>					
 					{% else %}
 					<div class="elements">
-						Element 1 Symbol {{forms.elements[0].element(class="search_term")}}
-						Charge constraint 1 {{forms.elements[0].charge(class="search_term")}}
+						Element 1 Symbol {{form.elements[0].element(class="search_term")}}
+						Charge constraint 1 {{form.elements[0].charge(class="search_term")}}
 					</div>
 					<div class="elements">
-						Element 2 Symbol {{forms.elements[1].element(class="search_term")}}
-						Charge constraint 2 {{forms.elements[1].charge(class="search_term")}}
+						Element 2 Symbol {{form.elements[1].element(class="search_term")}}
+						Charge constraint 2 {{form.elements[1].charge(class="search_term")}}
 					</div>
 					{% endif %}
 						
@@ -150,26 +150,7 @@ outline: none;
 			<p>{{message}}</p>
 			{% endif %}			
 			{% if results %}
-			<button type="button" class="downlaod-btn" onclick="tableToCSV()">
-				Download as csv
-			</button>
-
-			<table class="table table-striped table-hover">
-				<tr>
-					<th>Linker</th>
-					<th>Metal</th>
-					<th>Predicted porosity category</th>
-				</tr>
-				{% for result in results %}
-				<tr>
-					<td> {{ result[0] }} </td>
-					<td> {{ result[1] }} </td>
-					<td> {{ result[5] }} </td>
-				</tr>
-				{% endfor %}
-				
-			</table>
-
+			{{results}}
 			{% endif %}
 		</div>
 
