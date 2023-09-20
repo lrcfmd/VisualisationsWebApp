@@ -70,6 +70,8 @@ def render_3d(elements, n_points=None):
     plotter=Cube(model)
     if n_points is not None:
         model.find_spreadout_points(n_points)
+    else:
+        model.find_spreadout_points(5)
     plotter.plot_plotting_df(columns='Composition')
     fig = plotter.show(return_fig=True)
     return  pio.to_html(fig, full_html=False)
@@ -84,6 +86,8 @@ def render_2d(elements, n_points=None):
     plotter=Square(model)
     if n_points is not None:
         model.find_spreadout_points(n_points)
+    else:
+        model.find_spreadout_points(5)
     plotter.plot_plotting_df(columns='Composition')
     fig = plotter.show(return_fig=True)
     return  pio.to_html(fig, full_html=False)
