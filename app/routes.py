@@ -69,10 +69,10 @@ def render_3d(elements, n_points=None):
     model.find_corners_edges(model.normal_vectors)
     plotter=Cube(model)
     if n_points is not None:
-        model.find_spreadout_points(5)
+        model.find_spreadout_points(n_points)
     plotter.plot_plotting_df(columns='Composition')
     fig = plotter.show(return_fig=True)
-    return  pio.to_html(fig)
+    return  pio.to_html(fig, full_html=False)
 
 def render_2d(elements, n_points=None):
     model=Model()
@@ -82,10 +82,11 @@ def render_2d(elements, n_points=None):
         model.setup_uncharged(elements)
     model.find_corners_edges(model.normal_vectors)
     plotter=Square(model)
-    model.find_spreadout_points(5)
+    if n_points is not None:
+        model.find_spreadout_points(n_points)
     plotter.plot_plotting_df(columns='Composition')
     fig = plotter.show(return_fig=True)
-    return  pio.to_html(fig)
+    return  pio.to_html(fig, full_html=False)
 
 
 #Define route
@@ -93,32 +94,32 @@ def render_2d(elements, n_points=None):
 @app.route("/predict", methods=['GET', 'POST'])
 def predict():
     form = SearchForm()
-    app.logger.debug("called")
     if form.validate_on_submit():
         try:
-            app.logger.debug("HERE")
             #Parse strings
             if form.elements[0].charge.data:
-                elements = {x.element.data: x.charge.data for x in form.element if x.charge.data and x.elements.data}
+                elements = {x.element.data: x.charge.data for x in form.elements if x.charge.data and x.element.data}
+                app.logger.debug(elements)
                 if len (elements) > 5 or len (elements) <3:
                     return render_template("MOF_ml.html", form=form, message="Please enter between 3 and 5 elements") 
                 if len(elements) > 4:
-                    return render_template("MOF_ml.html", form=form, results=render_3d(elements, n_points=form.n_points.data))
+                    return render_template("MOF_ml.html", form=form, results=render_3d(elements, n_points=form.n_points.data), message="")
                 if len(elements) > 3:
-                    return render_template("MOF_ml.html", form=form, results=render_2d(elements, n_points=form.n_points.data))
-                return render_template("MOF_ml.html", form=form, results=render_2d(list(elements.keys(), n_points=form.n_points.data)))
+                    return render_template("MOF_ml.html", form=form, results=render_2d(elements, n_points=form.n_points.data), message="")
+                return render_template("MOF_ml.html", form=form, results=render_2d(list(elements.keys()), n_points=form.n_points.data), message="")
             
-            elements = [x.element.data for x in form.element if x.charge.data]
+            elements = [x.element.data for x in form.elements if x.element.data]
+            app.logger.debug(elements)
             if len (elements) > 4 or len (elements) < 3:
-                return render_template("MOF_ml.html", form=form, message="Without charge constraints between 3 and 4 eleements are supported")
+                return render_template("MOF_ml.html", form=form, message="Without charge constraints between 3 and 4 elements are supported")
             if len(elements) > 3:
-                return render_template("MOF_ml.html", form=form, results=render_3d(elements, n_points=form.n_points.data))
-            return render_template("MOF_ml.html", form=form, results=render_2d(elements, n_points=form.n_points.data))
+                return render_template("MOF_ml.html", form=form, results=render_3d(elements, n_points=form.n_points.data), message="")
+            return render_template("MOF_ml.html", form=form, results=render_2d(elements, n_points=form.n_points.data), message="")
         
         except Exception as e:
             app.logger.debug(e)
             return render_template("MOF_ml.html", form=form, message="Failed to process input, check it is properly formatted.")
             
 
-    return render_template("MOF_ml.html", form=form)
+    return render_template("MOF_ml.html", form=form, message="")
 

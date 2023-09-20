@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from algorithm import *
 from matplotlib import cm
+import pandas as pd
 from scipy.spatial import ConvexHull, convex_hull_plot_2d
 import plotly.express as px
 import plotly.graph_objects as go

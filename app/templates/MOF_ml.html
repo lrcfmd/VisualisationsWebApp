@@ -43,66 +43,40 @@ outline: none;
 </head>
 
 
-<!-- Load in the javascript file to download as csv -->
-<script type="text/javascript">
-	function tableToCSV() {
-		// Variable to store the final csv data
-		var csv_data = [];
+<script>
+    // Wait for the DOM to be fully loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get references to the buttons
+        var addButton = document.getElementById('add-elements-button');
+        var removeButton = document.getElementById('remove-elements-button');
+        var elementsContainer = document.getElementById('elements-container');
 
-		// Get each row data
-		var rows = document.getElementsByTagName('tr');
-		for (var i = 0; i < rows.length; i++) {
+        // Function to add a new element
+        function addElement() {
+            // Create a new elements div
+            var newElementDiv = document.createElement('div');
+            newElementDiv.className = 'elements';
 
-			// Get each column data
-			var cols = rows[i].querySelectorAll('td,th');
+            // Add content to the new element
+            var newIndex = elementsContainer.getElementsByClassName('elements').length + 1;
+            newElementDiv.innerHTML = 'Element ' + newIndex + ' Symbol <input type="text" required class="search_term" name="elements-' + newIndex + '-element"> Charge constraint ' + newIndex + ' <input type="text" class="search_term" name="elements-' + newIndex + '-charge" type="number">';
 
-			// Stores each csv row data
-			var csvrow = [];
-			for (var j = 0; j < cols.length; j++) {
+            // Append the new element to the container
+            elementsContainer.appendChild(newElementDiv);
+        }
 
-				// Get the text data of each cell
-				// of a row and push it to csvrow
-				csvrow.push(cols[j].innerHTML);
-			}
+        // Function to remove the last element
+        function removeElement() {
+            var elements = elementsContainer.getElementsByClassName('elements');
+            if (elements.length > 0) {
+                elementsContainer.removeChild(elements[elements.length - 1]);
+            }
+        }
 
-			// Combine each column value with comma
-			csv_data.push(csvrow.join(","));
-		}
-
-		// Combine each row data with new line character
-		csv_data = csv_data.join('\n');
-
-		// Call this function to download csv file 
-		downloadCSVFile(csv_data);
-	}
-
-	function downloadCSVFile(csv_data) {
-
-		// Create CSV file object and feed
-		// our csv_data into it
-		CSVFile = new Blob([csv_data], {
-			type: "text/csv"
-		});
-
-		// Create to temporary link to initiate
-		// download process
-		var temp_link = document.createElement('a');
-
-		// Download csv file
-		temp_link.download = "MOF_predictions.csv";
-		var url = window.URL.createObjectURL(CSVFile);
-		temp_link.href = url;
-
-		// This link should not be displayed
-		temp_link.style.display = "none";
-		document.body.appendChild(temp_link);
-
-		// Automatically click the link to
-		// trigger download
-		temp_link.click();
-		document.body.removeChild(temp_link);
-	}
-
+        // Add click event listeners to the buttons
+        addButton.addEventListener('click', addElement);
+        removeButton.addEventListener('click', removeElement);
+    });
 </script>
 
 
@@ -114,13 +88,13 @@ outline: none;
 
 		<div class="form ">
 <!--			<p class="title text-red">Predict MOF porosity from a metal and a linker</p> -->
-			<h3>Visualise a phase space</h3>>			<form action="" method="POST">
+			<h3>Visualise a phase space</h3>			<form action="" method="POST">
 				<div class="input-form">
 					{{ form.csrf_token }}
 					<div>
 						<h4>Elements</h4>
 						<div id='elements-container'>
-					{% set max_length = [form.elements|length, 2] | max %}
+					{% set max_length = [form.elements|length, 3] | max %}
 					{% for i in range(max_length) %}
 					
 					{% if form.elements[i] is defined %}
@@ -137,9 +111,16 @@ outline: none;
 						Element 2 Symbol {{form.elements[1].element(class="search_term")}}
 						Charge constraint 2 {{form.elements[1].charge(class="search_term")}}
 					</div>
+					<div class="elements">
+						Element 3 Symbol {{form.elements[2].element(class="search_term")}}
+						Charge constraint 3 {{form.elements[2].charge(class="search_term")}}
+					</div>
 					{% endif %}
 						
 					{% endfor %}
+				</div>
+				<div>
+					<button type="button" class="downlaod-btn" id="add-elements-button">Add element to phase field</button> <button type="button" class="downlaod-btn" id="remove-elements-button">Remove element from phase field</button>
 				</div>
 					{{ form.n_points(type="search", class="search_term", placeholder="Number of points to plot (optional)") }}
 					{{ form.submit() }} 
@@ -150,7 +131,7 @@ outline: none;
 			<p>{{message}}</p>
 			{% endif %}			
 			{% if results %}
-			{{results}}
+			{{results|safe}}
 			{% endif %}
 		</div>
 
@@ -158,8 +139,8 @@ outline: none;
 	</div>
 
 	<p id="explanationText">
-	Enter the formulation of a potential MOF using the SMILES representation of the linker and the metal(s) to be combined, to predict the likelihood of pores of different sizes forming in the resultant structur. Due to limitations in the training dataset only some elements are supported as metal, <a href="https://github.com/lrcfmd/LMDS_MOF_Porosity_Tool/blob/main/app/elemental_descriptors.csv">find the list of elements supported here</a>. Predictions were found to have an accuracy of 80.5% on a test set. This application was reported in <a href="https://doi.org/10.1039/D3DD00093A">The Liverpool Materials Discovery Server: A suite of tools for the collaborative discovery of materials.</a> and is based on the model first reported in <a href="https://onlinelibrary.wiley.com/doi/full/10.1002/ange.202114573">Machine-Learning Prediction of Metal–Organic Framework Guest Accessibility from Linker and Metal Chemistry</a>. Please consider citing these papers if you use this in your work. 
-	<br/> <a href="https://lmds.liverpool.ac.uk/mof_ml/API_info">Click here for information about accessing this model using our API</a></p>
+		Input elements and charge constraints to visualise a phase space. Without charge constraints 3-4 elements are supported, with charge constraints 4-5 elements are supported.
+	</p>
 
 </div>
 	{% include '/static/footer.html' %}
