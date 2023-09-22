@@ -94,36 +94,39 @@ outline: none;
 					<div>
 						<h4>Elements</h4>
 						<div id='elements-container'>
+					<table>
 					{% set max_length = [form.elements|length, 3] | max %}
 					{% for i in range(max_length) %}
 					
 					{% if form.elements[i] is defined %}
-					<div class="elements">
-						Element {{loop.index0 +1}} Symbol {{form.elements[i].element(class="search_term")}}
-						Charge constraint {{loop.index0 +1}} {{form.elements[i].charge(class="search_term")}}
-					</div>					
+					<tr class="elements">
+						<td>Element {{loop.index0 +1}} Symbol {{form.elements[i].element(class="search_term")}}</td>
+						<td>Charge constraint {{loop.index0 +1}} {{form.elements[i].charge(class="search_term")}}</td>
+					</tr>					
 					{% else %}
-					<div class="elements">
-						Element 1 Symbol {{form.elements[0].element(class="search_term")}}
-						Charge constraint 1 {{form.elements[0].charge(class="search_term")}}
+					<tr class="elements">
+						<tr>Element 1 Symbol {{form.elements[0].element(class="search_term")}}</tr>
+						<tr>Charge constraint 1 {{form.elements[0].charge(class="search_term")}}</tr>
 					</div>
-					<div class="elements">
-						Element 2 Symbol {{form.elements[1].element(class="search_term")}}
-						Charge constraint 2 {{form.elements[1].charge(class="search_term")}}
+					<tr class="elements">
+						<tr>Element 2 Symbol {{form.elements[1].element(class="search_term")}}</tr>
+						<tr>Charge constraint 2 {{form.elements[1].charge()}}</tr>
 					</div>
-					<div class="elements">
-						Element 3 Symbol {{form.elements[2].element(class="search_term")}}
-						Charge constraint 3 {{form.elements[2].charge(class="search_term")}}
+					<tr class="elements">		
+						<tr>Element 3 Symbol {{form.elements[2].element(class="search_term")}}</tr>
+						<tr>Charge constraint 3 {{form.elements[2].charge()}}</tr>
 					</div>
 					{% endif %}
 						
 					{% endfor %}
+					</table>
 				</div>
 				<div>
 					<button type="button" class="downlaod-btn" id="add-elements-button">Add element to phase field</button> <button type="button" class="downlaod-btn" id="remove-elements-button">Remove element from phase field</button>
 				</div>
 					{{ form.n_points(type="search", class="search_term", placeholder="Number of points to plot (optional)") }}
 					{{ form.submit() }} 
+				</div>
 				</div>
 
 			</form>
@@ -143,6 +146,7 @@ outline: none;
 	</p>
 
 </div>
+
 	{% include '/static/footer.html' %}
 
 </body>
