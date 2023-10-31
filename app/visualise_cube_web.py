@@ -16,6 +16,7 @@ class Cube:
         self.create_fig_corners(
             model.corners,model.edges,model.corner_compositions)
 
+
     def create_fig_corners(self,corners,edges,labels,s=10):
         '''
         creates figs with corners and edges as provided
@@ -73,16 +74,18 @@ class Cube:
             df=df.drop('Label',axis=1)
             df.to_csv(csv)
 
-    def plot_plotting_df(self,columns=[],s=5,c='black'):
+    def plot_plotting_df(
+            self,plotting_columns=[],s=None,c=None,name=None,df=None):
         '''
         plots model.plotting df
         columns: columns of df to display on hover
         s: size of popints
         c: colour of points
         '''
-        if not hasattr(self.model,'plotting_df'):
-            raise Exception('Cant plot it if it doesnt exist')
-        df=self.model.plotting_df
+        if df is None:
+            if not hasattr(self.model,'plotting_df'):
+                raise Exception('Cant plot it if it doesnt exist')
+            df=self.model.plotting_df
         if not {'x','y','z'}.issubset(df.columns):
             raise Exception('Dataframe must have x,y,z columns')
 
@@ -90,12 +93,42 @@ class Cube:
                     'y':False,
                     'z':False,}
         for i in df.columns:
-            if i in columns:
+            if i in plotting_columns:
                 hover_data[i]=True
             else:
                 hover_data[i]=False
         fig1 = px.scatter_3d(
             df,x='x',y='y',z='z',hover_data=hover_data)
-        fig1.update_traces(marker_size=s)
-        fig1.update_traces(marker_color=c)
+        if s is not None:
+            fig1.update_traces(marker_size=s)
+        if c is not None:
+            fig1.update_traces(marker_color=c)
+        if name is not None:
+            fig1.update_traces(name=name,showlegend=True)
         self.fig=go.Figure(data=self.fig.data+fig1.data)
+
+    def plot_mesh(self,points,name=None,poly=False):
+
+        x=points[:,0]
+        y=points[:,1]
+        z=points[:,2]
+        if poly:
+            hull=ConvexHull(points)
+            i=hull.simplices[:,0]
+            j=hull.simplices[:,1]
+            k=hull.simplices[:,2]
+            fig = go.Figure(
+                data=[go.Mesh3d(
+                    x=x, y=y, z=z, i=i,j=j,k=k,color='lightpink',
+                    opacity=0.50)])
+        if name is not None:
+            fig.update_traces(showlegend=True,name=name)
+        self.fig=go.Figure(data=self.fig.data+fig.data)
+
+    def plot_points(self,points,name=None,s=None,c=None):
+        df=pd.DataFrame()
+        df['x']=points[:,0]
+        df['y']=points[:,1]
+        df['z']=points[:,2]
+        self.plot_plotting_df(df=df,name=name,s=s,c=c)
+

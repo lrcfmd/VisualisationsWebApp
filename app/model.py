@@ -3,6 +3,8 @@ import math
 import cdd as pcdd
 from scipy.optimize import linprog
 import pandas as pd
+from pymatgen.core import Composition
+from app.mcmc import *
 
 class Model():
     #overall class that contains most functions for processing information
@@ -191,15 +193,37 @@ class Model():
             point=np.einsum('ij,...j->...i',self.basis,point,dtype=float)
             return point
 
-    def find_spreadout_points(self,n):
+    def find_spreadout_points(
+        self,num_steps,num_points,T=1,make_plotting_df=False,
+            use_cut_omega=False):
         '''
         finds n spread out points in space and stores them in plot ready df
         n: number of points
         '''
         if self.constrained_dim!=2 and self.constrained_dim!=3:
             raise Exception('only implemented for dim=2 or 3')
-        points=self.omega[
-            np.random.choice(self.omega.shape[0],n,replace=False)]
+
+        #points=self.omega[
+            #np.random.choice(self.omega.shape[0],n,replace=False)]
+        if hasattr(self,'knowns_constrained'):
+            knowns=self.knowns_constrained
+        else:
+            knowns=[]
+        if use_cut_omega:
+            omega=self.omega_cut
+        else:
+            omega=self.omega
+        sampler=Mcmc(omega,knowns,T)
+        res=sampler.build_MH_chain(num_steps,num_points)
+        points=res[0][np.argmax(res[2])]
+        if make_plotting_df==True:
+            self.make_df_from_points(points)
+
+    def make_df_from_points(self,points):
+        '''
+        make plotting ready df from points
+        points: list of points in constrained basis
+        '''
         x=points[:,0]
         y=points[:,1]
         df=pd.DataFrame()
@@ -213,6 +237,92 @@ class Model():
         df['Composition']=self.get_composition_strings(points_stan)
         self.plotting_df=df
 
+    def add_precursors(self,precursors,constrain_omega=True):
+        self.add_knowns(precursors)
+        precursors_standard=[]
+        precursors_label=[]
+        for k in precursors:
+            precursors_standard.append(
+                [k.get_atomic_fraction(e) for e in self.phase_field])
+            precursors_label.append(k.reduced_formula)
+        precursors_standard=np.array(precursors_standard)
+        precursors_constrained=self.convert_to_constrained_basis(
+            precursors_standard)
+        self.precursors_constrained=precursors_constrained
+        ones_col = np.ones((precursors_constrained.shape[0], 1))
+        mat = np.hstack((ones_col, precursors_constrained))
+        mat=pcdd.Matrix(mat)
+        mat.rep_type = pcdd.RepType.GENERATOR
+        poly = pcdd.Polyhedron(mat)
+        ext = poly.get_generators()
+        corners=[]
+        for i in ext:
+            corners.append(i[1:])
+        corners=np.array(corners)
+        #get edges
+        edges=[]
+        adjacencies = list(poly.get_adjacency())
+        for n,i in enumerate(adjacencies):
+            for j in list(i):
+                if j>n:
+                    edges.append([n,j])
+        self.precursor_corners=corners
+        self.precursor_edges=edges
+
+        inequalities=poly.get_inequalities()
+        inequalities=np.array(inequalities)
+        b=inequalities[:,0]
+        lines=inequalities[:,1:]
+        A=lines*-1
+        omega=self.omega
+        cuts=np.einsum('...j,ij->...i',omega,A)
+        omega=np.delete(
+            omega,np.where(np.any(
+                np.einsum('...j,ij->...i',omega,A)>b,axis=1)),
+            axis=0)
+        self.omega_cut=omega
+
+    def add_knowns(self,knowns,make_plotting_df=False):
+        knowns_standard=[]
+        knowns_label=[]
+        for k in knowns:
+            knowns_standard.append(
+                [k.get_atomic_fraction(e) for e in self.phase_field])
+            knowns_label.append(k.reduced_formula)
+        knowns_constrained=self.convert_to_constrained_basis(knowns_standard)
+        df=pd.DataFrame()
+        df['Label']=knowns_label
+        df['x']=knowns_constrained[:,0]
+        df['y']=knowns_constrained[:,1]
+        if self.constrained_dim==3:
+            df['z']=knowns_constrained[:,2]
+        if make_plotting_df==True:
+            self.plotting_df=df
+        if hasattr(self,'knowns_constrained'):
+            self.knowns_constrained=np.vstack((
+                knowns_constrained,self.knowns_constrained))
+        else:
+            self.knowns_constrained=knowns_constrained
+
+    def convert_standard_to_pymatgen(self,points):
+        '''
+        converts list of points in standard representation to constrained
+        representation.
+        points: list of points
+        '''
+        point=np.array(points)
+        if point.ndim==1:
+            comp=''
+            point_d={}
+            for el,x in zip(self.phase_field,point):
+                point_d[el]=x
+            point=Composition(point_d)
+            return point
+        else:
+            points=[]
+            for p in point:
+                points.append(self.convert_standard_to_pymatgen(p))
+            return points
 
     def get_composition_strings(self,points_stan,l1_norm=1,out='html'):
         '''
@@ -227,23 +337,45 @@ class Model():
             points_stan=np.array([points_stan])
         comps=[]
         for point in points_stan:
-            point=l1_norm*point/sum(point)
-            comp=''
-            if out=='html':
-                for x,el in zip(point,self.phase_field):
-                    x=round(x,2)
-                    if x!=0:
-                        comp+=el+'<sub>'
-                        comp+=str(x)+'</sub>'
-                comps.append(comp)
+            '''
+            p=self.convert_standard_to_pymatgen(point)
+            comps.append(p.reduced_formula)
+            '''
+            point=point/sum(point)
+            norm_min=30
+            for norm in range(1,30):
+                pointt=norm*point
+                if np.allclose(np.round(pointt),pointt):
+                    if norm<norm_min:
+                        norm_min=norm
+            if norm_min<30:
+                point=np.round(point*norm_min)
+                comp=''
+                if out=='html':
+                    for x,el in zip(point,self.phase_field):
+                        if x!=0:
+                            comp+=el+'<sub>'
+                            comp+=str(int(x))+'</sub>'
+                    comps.append(comp)
+                else:
+                    raise Exception('Unknwon output format')
             else:
-                raise Exception('Unknwon output format')
+                comp=''
+                if out=='html':
+                    for x,el in zip(point,self.phase_field):
+                        x=round(x,2)
+                        if x!=0:
+                            comp+=el+'<sub>'
+                            comp+=str(x)+'</sub>'
+                    comps.append(comp)
+                else:
+                    raise Exception('Unknwon output format')
         if len(comps)==1:
             return comps[0]
         else:
             return comps
 
-    def find_corners_edges(self,A):
+    def find_corners_edges(self,A,add_corners_to_knowns=False):
         '''
         gets corners and edges of polyhedra
         A:2d np matrix with columns as the constraining linear equations
@@ -302,6 +434,10 @@ class Model():
         self.corners=corners
         self.edges=edges
         self.corner_compositions=corner_compositions
+        if add_corners_to_knowns:
+            knowns_mat=self.convert_standard_to_pymatgen(corners)
+            self.add_knowns(knowns_mat)
+
 
     def get_constraint_lines(self):
         #function that uses the assigned basis vectors to find the planes
@@ -314,4 +450,6 @@ class Model():
             coefficients.append(1*self.contained_point[i])
             line_coefficients.append(np.array(coefficients))
         return line_coefficients
+
+
 

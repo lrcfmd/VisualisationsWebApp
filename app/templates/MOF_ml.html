@@ -39,6 +39,11 @@ opacity: 100;
 outline: none;
 
 }
+
+div.full_width {
+    width:100vw;
+    height:100vh;
+}
 </style>
 </head>
 
@@ -47,9 +52,15 @@ outline: none;
     // Wait for the DOM to be fully loaded
     document.addEventListener('DOMContentLoaded', function() {
         // Get references to the buttons
-        var addButton = document.getElementById('add-elements-button');
-        var removeButton = document.getElementById('remove-elements-button');
+        var addElementsButton = document.getElementById('add-elements-button');
+        var removeElementsButton = document.getElementById('remove-elements-button');
+        var addKnownsButton = document.getElementById('add-knowns-button');
+        var removeKnownsButton = document.getElementById('remove-knowns-button');
         var elementsContainer = document.getElementById('elements-container');
+        var knownsContainer = document.getElementById('knowns-container');
+        var addPrecursorsButton = document.getElementById('add-precursors-button');
+        var removePrecursorsButton = document.getElementById('remove-precursors-button');
+        var precursorsContainer = document.getElementById('precursors-container');
 
         // Function to add a new element
         function addElement() {
@@ -59,7 +70,7 @@ outline: none;
 
             // Add content to the new element
             var newIndex = elementsContainer.getElementsByClassName('elements').length + 1;
-            newElementDiv.innerHTML = 'Element ' + newIndex + ' Symbol <input type="text" required class="search_term" name="elements-' + newIndex + '-element"> Charge constraint ' + newIndex + ' <input type="text" class="search_term" name="elements-' + newIndex + '-charge" type="number">';
+            newElementDiv.innerHTML = 'Element ' + newIndex + ' Symbol <input type="text" name="elements-' + newIndex + '-element"> Charge constraint ' + newIndex + ' <input type="text" class="search_term" name="elements-' + newIndex + '-charge" type="number">';
 
             // Append the new element to the container
             elementsContainer.appendChild(newElementDiv);
@@ -73,9 +84,56 @@ outline: none;
             }
         }
 
+        // Function to add a new known
+        function addKnown() {
+            // Create a new knowns div
+            var newKnownDiv = document.createElement('div');
+            newKnownDiv.className = 'knowns';
+
+            // Add content to the new known
+            var newIndex = knownsContainer.getElementsByClassName('knowns').length + 1;
+            newKnownDiv.innerHTML = 'Known phase '+newIndex+' <input type="text" name="knowns-' + newIndex + '-known">';
+
+            // Append the new known to the container
+            knownsContainer.appendChild(newKnownDiv);
+        }
+
+        // Function to remove the last known
+        function removeKnown() {
+            var knowns = knownsContainer.getElementsByClassName('knowns');
+            if (knowns.length > 0) {
+                knownsContainer.removeChild(knowns[knowns.length - 1]);
+            }
+        }
+        // Function to add a new precursor
+        function addPrecursor() {
+            // Create a new precursors div
+            var newPrecursorDiv = document.createElement('div');
+            newPrecursorDiv.className = 'precursors';
+
+            // Add content to the new precursor
+            var newIndex = precursorsContainer.getElementsByClassName('precursors').length + 1;
+            newPrecursorDiv.innerHTML = 'Precursor '+newIndex+' <input type="text" name="precursors-' + newIndex + '-precursor">';
+
+            // Append the new precursor to the container
+            precursorsContainer.appendChild(newPrecursorDiv);
+        }
+
+        // Function to remove the last precursor
+        function removePrecursor() {
+            var precursors = precursorsContainer.getElementsByClassName('precursors');
+            if (precursors.length > 0) {
+                precursorsContainer.removeChild(precursors[precursors.length - 1]);
+            }
+        }
+
         // Add click event listeners to the buttons
-        addButton.addEventListener('click', addElement);
-        removeButton.addEventListener('click', removeElement);
+        addElementsButton.addEventListener('click', addElement);
+        removeElementsButton.addEventListener('click', removeElement);
+        addKnownsButton.addEventListener('click', addKnown);
+        removeKnownsButton.addEventListener('click', removeKnown);
+        addPrecursorsButton.addEventListener('click', addPrecursor);
+        removePrecursorsButton.addEventListener('click', removePrecursor);
     });
 </script>
 
@@ -88,41 +146,101 @@ outline: none;
 
 		<div class="form ">
 <!--			<p class="title text-red">Predict MOF porosity from a metal and a linker</p> -->
-			<h3>Visualise a phase space</h3>			<form action="" method="POST">
+			<h3>Visualise a phase space</h3>			
+            <form action="" method="POST">
 				<div class="input-form">
 					{{ form.csrf_token }}
 					<div>
 						<h4>Elements</h4>
 						<div id='elements-container'>
-					<table>
-					{% set max_length = [form.elements|length, 3] | max %}
-					{% for i in range(max_length) %}
-					
-					{% if form.elements[i] is defined %}
-					<tr class="elements">
-						<td>Element {{loop.index0 +1}} Symbol {{form.elements[i].element(class="search_term")}}</td>
-						<td>Charge constraint {{loop.index0 +1}} {{form.elements[i].charge(class="search_term")}}</td>
-					</tr>					
-					{% else %}
-					<tr class="elements">
-						<tr>Element 1 Symbol {{form.elements[0].element(class="search_term")}}</tr>
-						<tr>Charge constraint 1 {{form.elements[0].charge(class="search_term")}}</tr>
-					</div>
-					<tr class="elements">
-						<tr>Element 2 Symbol {{form.elements[1].element(class="search_term")}}</tr>
-						<tr>Charge constraint 2 {{form.elements[1].charge()}}</tr>
-					</div>
-					<tr class="elements">		
-						<tr>Element 3 Symbol {{form.elements[2].element(class="search_term")}}</tr>
-						<tr>Charge constraint 3 {{form.elements[2].charge()}}</tr>
-					</div>
-					{% endif %}
-						
-					{% endfor %}
-					</table>
-				</div>
+                        <table>
+                        {% set max_length = [form.elements|length, 3] | max %}
+                        {% for i in range(max_length) %}
+                        
+                        {% if form.elements[i] is defined %}
+                        <tr class="elements">
+                            <td>Element {{loop.index0 +1}} Symbol {{form.elements[i].element(class="search_term")}}</td>
+                            <td>Charge constraint {{loop.index0 +1}} {{form.elements[i].charge(class="search_term")}}</td>
+                        </tr>					
+                        {% else %}
+                        <tr class="elements">
+                            <tr>Element 1 Symbol {{form.elements[0].element(class="search_term")}}</tr>
+                            <tr>Charge constraint 1 {{form.elements[0].charge(class="search_term")}}</tr>
+                        </div>
+                        <tr class="elements">
+                            <tr>Element 2 Symbol {{form.elements[1].element(class="search_term")}}</tr>
+                            <tr>Charge constraint 2 {{form.elements[1].charge()}}</tr>
+                        </div>
+                        <tr class="elements">		
+                            <tr>Element 3 Symbol {{form.elements[2].element(class="search_term")}}</tr>
+                            <tr>Charge constraint 3 {{form.elements[2].charge()}}</tr>
+                        </div>
+                        {% endif %}
+                            
+                        {% endfor %}
+                        </table>
+                    </div>
 				<div>
-					<button type="button" class="downlaod-btn" id="add-elements-button">Add element to phase field</button> <button type="button" class="downlaod-btn" id="remove-elements-button">Remove element from phase field</button>
+				<div>
+					<button type="button" class="downlaod-btn" id="add-elements-button">Add element to phase field</button>
+                    <button type="button" class="downlaod-btn" id="remove-elements-button">Remove element from phase field</button>
+				</div>
+                
+				<div class="input-form">
+					{{ form.csrf_token }}
+					<div>
+						<h4>(Optional) Known phases</h4>
+						<div id='knowns-container'>
+                        <table>
+                        {% set max_length = [form.knowns|length, 1] | max %}
+                        {% for i in range(max_length) %}
+                        
+                        {% if form.knowns[i] is defined %}
+                        <tr class="knowns">
+                            <td>Known phase {{loop.index0 +1}} {{form.knowns[i].known(class="search_term")}}</td>
+                        </tr>					
+                        {% else %}
+                        <tr class="knowns">
+                            <tr>Known phase 1 {{form.knowns[0].known(class="search_term")}}</tr>
+                        </div>
+                        {% endif %}
+                            
+                        {% endfor %}
+                        </table>
+                    </div>
+				<div>
+					<button type="button" class="downlaod-btn" id="add-knowns-button">Add known to phase field</button> 
+                    <button type="button" class="downlaod-btn" id="remove-knowns-button">Remove known from phase field</button>
+
+				<div class="input-form">
+					{{ form.csrf_token }}
+					<div>
+						<h4>(Optional) Precursors</h4>
+						<div id='precursors-container'>
+                        <table>
+                        {% set max_length = [form.precursors|length, 1] | max %}
+                        {% for i in range(max_length) %}
+                        
+                        {% if form.precursors[i] is defined %}
+                        <tr class="precursors">
+                            <td>Precursor {{loop.index0 +1}} {{form.precursors[i].precursor(class="search_term")}}</td>
+                        </tr>					
+                        {% else %}
+                        <tr class="precursorss">
+                            <tr>Precursor 1 {{form.precursors[0].precursor(class="search_term")}}</tr>
+                        </div>
+                        {% endif %}
+                            
+                        {% endfor %}
+                        </table>
+                    </div>
+				<div>
+					<button type="button" class="downlaod-btn"
+                        id="add-precursors-button">Add precursor</button> 
+                    <button type="button" class="downlaod-btn"
+                        id="remove-precursors-button">Remove precursor</button>
+
+
 				</div>
 					{{ form.n_points(type="search", class="search_term", placeholder="Number of points to plot (optional)") }}
 					{{ form.submit() }} 
@@ -133,9 +251,6 @@ outline: none;
 			{% if message %}
 			<p>{{message}}</p>
 			{% endif %}			
-			{% if results %}
-			{{results|safe}}
-			{% endif %}
 		</div>
 
 		
@@ -145,6 +260,11 @@ outline: none;
 		Input elements and charge constraints to visualise a phase space. Without charge constraints 3-4 elements are supported, with charge constraints 4-5 elements are supported.
 	</p>
 
+</div>
+<div class="full_width">
+{% if results %}
+{{results|safe}}
+{% endif %}
 </div>
 
 	{% include '/static/footer.html' %}
