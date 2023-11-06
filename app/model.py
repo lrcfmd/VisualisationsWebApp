@@ -4,6 +4,9 @@ import cdd as pcdd
 from scipy.optimize import linprog
 import pandas as pd
 from pymatgen.core import Composition
+from scipy.optimize import nnls
+from scipy.spatial import ConvexHull
+#from mcmc import *
 from app.mcmc import *
 
 class Model():
@@ -29,7 +32,7 @@ class Model():
     def setup_charged(
             self,species_dict,cube_size=30,basis=None):
         '''
-        species_dict: key of element string and value of formal charge
+    species_dict: key of element string and value of formal charge
         cube_size: resolution of grid
         basis: optional basis to use (to avoid random rotations)
         '''
@@ -216,6 +219,7 @@ class Model():
         sampler=Mcmc(omega,knowns,T)
         res=sampler.build_MH_chain(num_steps,num_points)
         points=res[0][np.argmax(res[2])]
+        self.suggested_points=points
         if make_plotting_df==True:
             self.make_df_from_points(points)
 
@@ -248,6 +252,7 @@ class Model():
         precursors_standard=np.array(precursors_standard)
         precursors_constrained=self.convert_to_constrained_basis(
             precursors_standard)
+        self.precursors_standard=precursors_standard
         self.precursors_constrained=precursors_constrained
         ones_col = np.ones((precursors_constrained.shape[0], 1))
         mat = np.hstack((ones_col, precursors_constrained))
@@ -353,9 +358,11 @@ class Model():
                 comp=''
                 if out=='html':
                     for x,el in zip(point,self.phase_field):
-                        if x!=0:
+                        if x>1:
                             comp+=el+'<sub>'
                             comp+=str(int(x))+'</sub>'
+                        if x==1:
+                            comp+=el
                     comps.append(comp)
                 else:
                     raise Exception('Unknwon output format')
@@ -450,6 +457,43 @@ class Model():
             coefficients.append(1*self.contained_point[i])
             line_coefficients.append(np.array(coefficients))
         return line_coefficients
+
+    def set_precursor_amounts_for_suggested(self):
+        A=self.precursors_standard
+        A=self.convert_to_constrained_basis(A)
+        precursor_amounts=[]
+        for i in self.precursors_standard:
+            print(i)
+        for p in self.suggested_points:
+            print('Precursor reconstruction')
+            print(self.convert_to_standard_basis(p))
+            x=nnls(A.T,p,maxiter=2000)
+            print(self.convert_to_standard_basis(A.T@x[0]))
+            print(x[0])
+            precursor_amounts.append(x[0])
+            if x[1] >1e-3:
+                print('WARNINGGGGGG')
+        self.precursor_amounts=np.array(precursor_amounts)
+
+    def get_precursor_df_as_html(self):
+        self.set_precursor_amounts_for_suggested()
+        df=pd.DataFrame()
+        precursors=self.get_composition_strings(self.precursors_standard)
+        p_s=np.round(
+            self.convert_to_standard_basis(self.suggested_points,norm=1),2)
+        suggested_points=self.convert_standard_to_pymatgen(p_s)
+        df['Suggested point']=[x.reduced_formula for x in suggested_points]
+        for n,i in enumerate(precursors):
+            df[i]=np.round(100*self.precursor_amounts[:,n],2)
+        print(df)
+        return df.to_html()
+
+
+
+
+
+
+
 
 
 

@@ -42,10 +42,13 @@ plotter.plot_mesh(
 #plotter.plot_plotting_df(
 #    plotting_columns=['Label'],c='red',name="Known phases")
 model.find_spreadout_points(
-    2500,15,T=50,make_plotting_df=True,use_cut_omega=True)
+    250,15,T=50,make_plotting_df=True,use_cut_omega=True)
 plotter.plot_plotting_df(
     plotting_columns=['Composition'],c='green',name="Suggested points")
 plotter.show()
+
+model.set_precursor_amounts_for_suggested()
+
 #3d uncharged
 '''
 model=Model()

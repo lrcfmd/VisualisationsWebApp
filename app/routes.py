@@ -93,9 +93,15 @@ def render_3d(elements, n_points=None,knowns=None,precursors=None):
             plotter.plot_plotting_df(
             plotting_columns='Composition',name='Suggested points',c='green')
     fig = plotter.show(return_fig=True)
-    return  pio.to_html(fig,
-                        full_html=False,default_width='100vw',
-                        default_height="100vh")
+
+    if precursors:
+        precursor_table=model.get_precursor_df_as_html()
+    else:
+        precursor_table=None
+    return  (
+        pio.to_html(
+            fig,full_html=False,default_width='100vw',default_height="100vh"),
+        precursor_table)
 
 def render_2d(elements, n_points=None,knowns=None,precursors=None):
     model=Model()
@@ -124,7 +130,14 @@ def render_2d(elements, n_points=None,knowns=None,precursors=None):
     plotter.plot_plotting_df(
         plotting_columns=['Composition'],c='green',name='Suggested_points')
     fig = plotter.show(return_fig=True)
-    return  pio.to_html(fig, full_html=False)
+    if precursors:
+        precursor_table=model.get_precursor_df_as_html()
+    else:
+        precursor_table=None
+    return  (
+        pio.to_html(
+            fig,full_html=False,default_width='50vw',default_height="50vh"),
+        precursor_table)
 
 
 #Define route
@@ -167,12 +180,12 @@ def predict():
                         "MOF_ml.html", form=form,
                         message="Please enter between 3 and 5 elements")
                 if len(elements) > 4:
+                    print('in right place')
                     return render_template(
                         "MOF_ml.html", form=form,results=render_3d(
                             elements,
                             n_points=form.n_points.data,
-                            knowns=knowns,
-                            precursors=precursors),
+                            knowns=knowns,precursors=precursors),
                         message="")
                 if len(elements) > 3:
                     return render_template(

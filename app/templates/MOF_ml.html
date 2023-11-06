@@ -44,6 +44,10 @@ div.full_width {
     width:100vw;
     height:100vh;
 }
+div.gap {
+    width:100vw;
+    height:300px;
+}
 </style>
 </head>
 
@@ -263,7 +267,13 @@ div.full_width {
 </div>
 <div class="full_width">
 {% if results %}
-{{results|safe}}
+{{results[0]|safe}}
+{% endif %}
+</div>
+<div class='gap'></div>
+<div>
+{% if results %}
+{{results[1]|safe}}
 {% endif %}
 </div>
 
