@@ -89,8 +89,8 @@ class Model():
     def find_orthonormal(self,A):
         #finds a vector orthonormal to the column space of A
         rand_vec=np.random.rand(A.shape[0],1)
-        A = np.hstack((A,rand_vec))
-        b = np.zeros(A.shape[1])
+        A = np.hstack((A,rand_vec),dtype=np.double)
+        b = np.zeros(A.shape[1],dtype=np.double)
         b[-1] = 1
         x = np.linalg.lstsq(A.T,b,rcond=None)[0]
         return x/np.linalg.norm(x)
@@ -154,7 +154,7 @@ class Model():
                 axis=0)
 
         self.omega=omega #the grid of points
-        self.constrained_dim=plane_dim #dimension of constrained space
+        self.constrained_dim=plane_dim #dimension of conPC, Projector Screen, Data Projector, Visualizer, Lecture Capture, Wi-fi, DVD Player, Blu-ray Playerstrained space
         self.normal_vectors=normal_vectors #normal vectors
         self.cube_size=cube_size #resolution of discretisation
 
@@ -168,7 +168,8 @@ class Model():
         if norm is None:
             norm=self.cube_size
         A=self.basis
-        p_standard=self.contained_point+np.einsum('ji,...j->...i',A,points)
+        p_standard=self.contained_point+np.einsum(
+            'ji,...j->...i',A,points)
         if p_standard.ndim==1:
             p_standard=norm*p_standard/np.sum(p_standard)
         else:
@@ -193,12 +194,21 @@ class Model():
             norma=np.sum(point,axis=1)/self.cube_size
             point=(point.T/norma).T
             point=point-self.contained_point
-            point=np.einsum('ij,...j->...i',self.basis,point,dtype=float)
+            point=np.einsum(
+                'ij,...j->...i',self.basis,point)
             return point
+
+    def add_constraints(self,ratio,minimum_amount):
+        omega=self.omega
+        omega_s=self.convert_to_standard_basis(self.omega,norm=1)
+        omega=np.delete(
+            omega,np.where(
+                np.einsum('...i,i->...',omega_s,ratio)<minimum_amount),axis=0)
+        self.omega=omega
 
     def find_spreadout_points(
         self,num_steps,num_points,T=1,make_plotting_df=False,
-            use_cut_omega=False):
+            use_cut_omega=False,show_chain=False):
         '''
         finds n spread out points in space and stores them in plot ready df
         n: number of points
@@ -218,7 +228,11 @@ class Model():
             omega=self.omega
         sampler=Mcmc(omega,knowns,T)
         res=sampler.build_MH_chain(num_steps,num_points)
+        if show_chain:
+            plt.plot(res[2])
+            plt.show()
         points=res[0][np.argmax(res[2])]
+        grid_points=[]
         self.suggested_points=points
         if make_plotting_df==True:
             self.make_df_from_points(points)
@@ -241,8 +255,28 @@ class Model():
         df['Composition']=self.get_composition_strings(points_stan)
         self.plotting_df=df
 
+    def make_df_from_points_standard(self,points,norm=1):
+        '''
+        make plotting ready df from points
+        points: list of points in constrained basis
+        '''
+        df=pd.DataFrame()
+        print(points.shape)
+        for n,el in enumerate(self.phase_field):
+            df[el]=points[:,n]
+        df['Composition']=self.get_composition_strings(points,l1_norm=norm)
+        points_con=self.convert_to_constrained_basis(points)
+        x=points_con[:,0]
+        y=points_con[:,1]
+        df['x']=x
+        df['y']=y
+        if self.constrained_dim==3:
+            df['z']=points_con[:,2]
+        self.plotting_df=df
+
     def add_precursors(self,precursors,constrain_omega=True):
         self.add_knowns(precursors)
+        self.precursors_size=[x.num_atoms for x in precursors]
         precursors_standard=[]
         precursors_label=[]
         for k in precursors:
@@ -291,23 +325,37 @@ class Model():
         knowns_standard=[]
         knowns_label=[]
         for k in knowns:
-            knowns_standard.append(
-                [k.get_atomic_fraction(e) for e in self.phase_field])
-            knowns_label.append(k.reduced_formula)
-        knowns_constrained=self.convert_to_constrained_basis(knowns_standard)
-        df=pd.DataFrame()
-        df['Label']=knowns_label
-        df['x']=knowns_constrained[:,0]
-        df['y']=knowns_constrained[:,1]
-        if self.constrained_dim==3:
-            df['z']=knowns_constrained[:,2]
-        if make_plotting_df==True:
-            self.plotting_df=df
-        if hasattr(self,'knowns_constrained'):
-            self.knowns_constrained=np.vstack((
-                knowns_constrained,self.knowns_constrained))
-        else:
-            self.knowns_constrained=knowns_constrained
+            print(k)
+            print(self.phase_field)
+            ks=[k.get_atomic_fraction(e) for e in self.phase_field]
+            if self.normal_vectors.shape[0]>1:
+                if abs(np.dot(ks,self.normal_vectors[0]))>0.00001:
+                    print(ks)
+                    print('Ignoring unbalanced known: ',
+                          self.get_composition_strings(ks,out='txt'))
+                else:
+                    knowns_standard.append(ks)
+                    knowns_label.append(k.reduced_formula)
+            else:
+                knowns_standard.append(ks)
+                knowns_label.append(k.reduced_formula)
+
+        if knowns_standard:
+            knowns_constrained=self.convert_to_constrained_basis(
+                knowns_standard)
+            df=pd.DataFrame()
+            df['Label']=knowns_label
+            df['x']=knowns_constrained[:,0]
+            df['y']=knowns_constrained[:,1]
+            if self.constrained_dim==3:
+                df['z']=knowns_constrained[:,2]
+            if make_plotting_df==True:
+                self.plotting_df=df
+            if hasattr(self,'knowns_constrained'):
+                self.knowns_constrained=np.vstack((
+                    knowns_constrained,self.knowns_constrained))
+            else:
+                self.knowns_constrained=knowns_constrained
 
     def convert_standard_to_pymatgen(self,points):
         '''
@@ -329,7 +377,7 @@ class Model():
                 points.append(self.convert_standard_to_pymatgen(p))
             return points
 
-    def get_composition_strings(self,points_stan,l1_norm=1,out='html'):
+    def get_composition_strings(self,points_stan,l1_norm=1,out='html',prec=2):
         '''
         function to get a string representation for a composition
         should probably replace this with pymatgen
@@ -364,16 +412,33 @@ class Model():
                         if x==1:
                             comp+=el
                     comps.append(comp)
+                elif out=='txt':
+                    for x,el in zip(point,self.phase_field):
+                        if x>1:
+                            comp+=el+' '
+                            comp+=str(int(x))+' '
+                        if x==1:
+                            comp+=el +' '
+                    comps.append(comp)
                 else:
+                    print(out)
                     raise Exception('Unknwon output format')
             else:
+                point=point*l1_norm
                 comp=''
                 if out=='html':
                     for x,el in zip(point,self.phase_field):
-                        x=round(x,2)
+                        x=round(x,prec)
                         if x!=0:
                             comp+=el+'<sub>'
                             comp+=str(x)+'</sub>'
+                    comps.append(comp)
+                elif out=='txt':
+                    for x,el in zip(point,self.phase_field):
+                        x=round(x,prec)
+                        if x!=0:
+                            comp+=el+' '
+                            comp+=str(x)+' '
                     comps.append(comp)
                 else:
                     raise Exception('Unknwon output format')
@@ -458,36 +523,90 @@ class Model():
             line_coefficients.append(np.array(coefficients))
         return line_coefficients
 
-    def set_precursor_amounts_for_suggested(self):
+        self.suggested_points_standard=np.round(self.convert_to_standard_basis(
+                self.suggested_points,norm=1),prec)
+        for i in self.suggested_points_standard:
+            print(i)
+        if make_plotting_df==True:
+            self.make_df_from_points_standard(self.suggested_points_standard)
+
+    def set_precursor_amounts_for_suggested(self,lcm=1):
         A=self.precursors_standard
+        B=[]
+        for i in A:
+            B.append(self.convert_to_standard_basis(
+                self.convert_to_constrained_basis(i),norm=1))
         A=self.convert_to_constrained_basis(A)
         precursor_amounts=[]
+        A=np.hstack((np.ones((A.shape[0],1)),A))
+        A=A.T
+        suggested_points_rounded=[]
+        for p in self.suggested_points:
+            #p=(p.astype(np.longdouble)
+            #   +0.000001*self.convert_to_constrained_basis([1,0,0,0,1]))
+            print('Original: ',self.convert_to_standard_basis(p,norm=lcm))
+            p=np.insert(p,0,1)
+            x=nnls(A,p,maxiter=2000)
+            sol=x[0]/sum(x[0])
+            A_temp=A[1:,:]
+            recon=self.convert_to_standard_basis(A_temp@sol)
+            v=np.zeros(len(self.phase_field))
+            for i,j in zip(self.precursors_standard,sol):
+                v+=(j*i)
+            print('recon',lcm*v)
+            v=np.zeros(len(self.phase_field))
+            for i,j in zip(self.precursors_standard,sol):
+                print(i)
+                print(round(j,2))
+                i=i*lcm
+                v+=(np.round(j,2)*i)
+            print('reconrounded',v)
+            sol=np.round(sol,2)
+            suggested_points_rounded.append(v)
+            precursor_amounts.append(sol)
+        self.suggested_points_standard=np.array(suggested_points_rounded)
+        self.suggested_points=self.convert_to_constrained_basis(
+            self.suggested_points_standard)
+        precursor_amounts=np.array(precursor_amounts)
         for i in self.precursors_standard:
             print(i)
-        for p in self.suggested_points:
-            print('Precursor reconstruction')
-            print(self.convert_to_standard_basis(p))
-            x=nnls(A.T,p,maxiter=2000)
-            print(self.convert_to_standard_basis(A.T@x[0]))
-            print(x[0])
-            precursor_amounts.append(x[0])
-            if x[1] >1e-3:
-                print('WARNINGGGGGG')
-        self.precursor_amounts=np.array(precursor_amounts)
+        print('---')
+        for i in precursor_amounts:
+            print(i)
+        precursor_amounts/=self.precursors_size
+        print('---')
+        for i in precursor_amounts:
+            print(i)
+        precursor_amounts*=lcm
+        print('---')
+        for i in precursor_amounts:
+            print(i)
+        self.precursor_amounts=precursor_amounts
 
-    def get_precursor_df_as_html(self):
-        self.set_precursor_amounts_for_suggested()
+
+    def get_precursor_df_as_html(self,prec=5):
+        self.set_precursor_amounts_for_suggested(lcm=6)
         df=pd.DataFrame()
         precursors=self.get_composition_strings(self.precursors_standard)
-        p_s=np.round(
-            self.convert_to_standard_basis(self.suggested_points,norm=1),2)
+        p_s=self.suggested_points_standard
         suggested_points=self.convert_standard_to_pymatgen(p_s)
         df['Suggested point']=[x.reduced_formula for x in suggested_points]
         for n,i in enumerate(precursors):
-            df[i]=np.round(100*self.precursor_amounts[:,n],2)
+            df[i]=np.round(100*self.precursor_amounts[:,n],prec)
         print(df)
-        return df.to_html()
+        return df.to_html(escape=False,index=False)
 
+    def get_precursor_df_as_csv(self,path,pre_prec=5,comp_prec=2):
+        self.set_precursor_amounts_for_suggested(lcm=6)
+        df=pd.DataFrame()
+        precursors=self.get_composition_strings(
+            self.precursors_standard,out='txt')
+        p_s=self.suggested_points_standard
+        suggested_points=self.convert_standard_to_pymatgen(p_s)
+        df['Suggested point']=[x.reduced_formula for x in suggested_points]
+        for n,i in enumerate(precursors):
+            df[i]=np.round(100*self.precursor_amounts[:,n],pre_prec)
+        df.to_csv(path)
 
 
 

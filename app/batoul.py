@@ -25,29 +25,31 @@ plotter.show()
 '''
 #3d charged
 model=Model()
-model.setup_charged({'Li':1,'Al':3,'B':3,'O':-2,'F':-1})
-precursors=["Li2O","LiAlO2","BF3","LiAlB2O4F2"]
+model.setup_charged({'Mg':2,'Al':3,'S':-2,'Cl':-1})
+precursors=["MgS","MgCl2","Al2S3","AlCl3"]
 precursors=[Composition(x) for x in precursors]
 model.find_corners_edges(model.normal_vectors,add_corners_to_knowns=True)
-plotter=Cube(model)
+plotter=Square(model)
 model.add_precursors(precursors)
-plotter.plot_mesh(
-    model.precursors_constrained,poly=True,name='Precursor accessible')
+#plotter.plot_mesh(
+#    model.precursors_constrained,poly=True,name='Precursor accessible')
 #plotter.plot_points(model.omega_cut,s=0.5,c='green')
 #plotter.plot_points(model.omega,s=0.5,name='all')
 
 
-#knowns=[Composition("LiAlBO3F"),Composition("Li4AlB2O5F5")]
-#model.add_knowns(knowns,make_plotting_df=True)
-#plotter.plot_plotting_df(
-#    plotting_columns=['Label'],c='red',name="Known phases")
+knowns=[Composition("MgAl2S4")]
+model.add_knowns(knowns,make_plotting_df=True)
+plotter.plot_plotting_df(
+    plotting_columns=['Label'],c='red',name="Known phases")
 model.find_spreadout_points(
-    250,15,T=50,make_plotting_df=True,use_cut_omega=True)
+    2500,10,T=50,make_plotting_df=True,show_chain=True)
+    #2500,10,T=50,make_plotting_df=True,use_cut_omega=True)
 plotter.plot_plotting_df(
     plotting_columns=['Composition'],c='green',name="Suggested points")
-#plotter.show()
+plotter.show(save='../../batoul/initial_scan')
 
 model.set_precursor_amounts_for_suggested()
+model.get_precursor_df_as_csv('../../batoul/initial_scan.csv')
 
 #3d uncharged
 '''

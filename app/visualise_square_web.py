@@ -150,3 +150,18 @@ class Square():
         if name is not None:
             fig.update_traces(showlegend=True,name=name)
         self.fig=go.Figure(data=self.fig.data+fig.data)
+
+    def plot_points(
+            self,points,name=None,s=None,c=None,composition=False,prec=2):
+        df=pd.DataFrame()
+        df['x']=points[:,0]
+        df['y']=points[:,1]
+        if composition:
+            label=self.model.get_composition_strings(
+                self.model.convert_to_standard_basis(points),prec=prec)
+            df['Label']=label
+            self.plot_plotting_df(
+                df=df,name=name,s=s,c=c,plotting_columns=['Label'])
+        else:
+            self.plot_plotting_df(df=df,name=name,s=s,c=c)
+

@@ -125,10 +125,3 @@ class Cube:
             fig.update_traces(showlegend=True,name=name)
         self.fig=go.Figure(data=self.fig.data+fig.data)
 
-    def plot_points(self,points,name=None,s=None,c=None):
-        df=pd.DataFrame()
-        df['x']=points[:,0]
-        df['y']=points[:,1]
-        df['z']=points[:,2]
-        self.plot_plotting_df(df=df,name=name,s=s,c=c)
-
