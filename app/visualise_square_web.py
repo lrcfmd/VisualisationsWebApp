@@ -114,6 +114,7 @@ class Square():
         s: size of popints
         c: colour of points
         '''
+        print(c,name)
         if df is None:
             if not hasattr(self.model,'plotting_df'):
                 raise Exception('Cant plot it if it doesnt exist')

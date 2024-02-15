@@ -127,8 +127,8 @@ def render_2d(elements, n_points=None,knowns=None,precursors=None):
         model.find_spreadout_points(
             num_steps,n_points,make_plotting_df=True,
             use_cut_omega=bool(precursors),T=T)
-    plotter.plot_plotting_df(
-        plotting_columns=['Composition'],c='green',name='Suggested_points')
+        plotter.plot_plotting_df(
+            plotting_columns=['Composition'],c='green',name='Suggested_points')
     fig = plotter.show(return_fig=True)
     if precursors:
         precursor_table=model.get_precursor_df_as_html()
